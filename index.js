@@ -102,6 +102,20 @@ async function run() {
     })
 
 
+    // pet listing
+
+    app.get('/petlisting',async(req,res)=>{
+      // let email=req.params.email 
+
+      let result= await petsCollection.aggregate([
+        {
+          $match:{adopted:false}
+        }
+      ]).toArray();
+      res.send(result)
+    })
+
+
 
     // campaign related
     app.post('/createcampaign', async (req, res) => {
