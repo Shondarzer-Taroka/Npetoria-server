@@ -30,6 +30,7 @@ async function run() {
     let usersCollection = client.db('petoriaDB').collection('users')
     let petsCollection = client.db('petoriaDB').collection('pets')
     let campaignCollection = client.db('petoriaDB').collection('campaign')
+    let adoptionsrequestedCollection = client.db('petoriaDB').collection('adoptionsrequested')
 
     // app.post('/users',async(req,res)=>{
     //     let user = req.body 
@@ -104,14 +105,45 @@ async function run() {
 
     // pet listing
 
+    // app.get('/petlisting',async(req,res)=>{
+    //   // let email=req.params.email 
+
+    //   let result= await petsCollection.aggregate([
+    //     {
+    //       $match:{adopted:false}
+    //     },
+    //     {
+    //       $sort: { date: -1 } 
+    //     }
+    //   ]).toArray();
+     
+    //   res.send(result)
+    // })
     app.get('/petlisting',async(req,res)=>{
       // let email=req.params.email 
 
       let result= await petsCollection.aggregate([
         {
           $match:{adopted:false}
-        }
+        },
+        {
+          $sort: { date: -1 } 
+        },
+        // {
+        //   $skip: page * limit
+        // },
+        // {
+        //   $limit: limit
+        // }
       ]).toArray();
+     
+      res.send(result)
+    })
+
+    app.get('/viewdetails/:id',async(req,res)=>{
+      let id=req.params.id
+      let query={_id:new ObjectId(id)}
+      let result =await petsCollection.findOne(query)
       res.send(result)
     })
 
@@ -215,8 +247,8 @@ async function run() {
       let updatedDoc = {
         $set: {
           image: pet.image,
-          date: pet.data,
-          time: pet.date,
+          date: pet.date,
+          time: pet.time,
           name: pet.name,
           age: pet.age,
           location: pet.location,
@@ -229,6 +261,14 @@ async function run() {
       let result=await petsCollection.updateOne(filter,updatedDoc)
       res.send(result)
     })
+
+    //  adoptionsrequested
+
+   app.post('/adoptionrequest',async(req,res)=>{
+    let adoptionrequest=req.body
+    let result =await adoptionsrequestedCollection.insertOne(adoptionrequest)
+    res.send(result)
+   })
 
 
     // Send a ping to confirm a successful connection
