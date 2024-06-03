@@ -136,7 +136,6 @@ async function run() {
         //   $limit: limit
         // }
       ]).toArray();
-     
       res.send(result)
     })
 
@@ -155,6 +154,15 @@ async function run() {
       let result = await campaignCollection.insertOne(pet)
       res.send(result)
     })
+
+
+    app.get('/donationcampaign',async(req,res)=>{
+      let result=await campaignCollection.find().toArray()
+      res.send(result)
+    })
+
+
+    
 
 
     app.get('/campaigns', async (req, res) => {
