@@ -317,10 +317,27 @@ async function run() {
   app.post('/donator',async(req,res)=>{
     let donator=req.body 
     let result=await donatorsCollection.insertOne(donator)
+    
     res.send(result)
   })
 
-  
+
+  app.get('/donators/:donationid',async(req,res)=>{
+    let id=req.params.donationid
+    // console.log(id);
+    let query={askedforId:id}
+    let result =await donatorsCollection.find(query).toArray()
+    res.send(result)
+    // console.log(result);
+  })
+
+
+  app.get('/mydonation/:email',async(req,res)=>{
+    let email=req.params.email
+    let query={email:email}
+    let result=await donatorsCollection.find(query).toArray()
+    res.send(result)
+  })
   
 
     // Send a ping to confirm a successful connection
