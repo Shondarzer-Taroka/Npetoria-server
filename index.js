@@ -1,7 +1,8 @@
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express')
 const cors = require('cors')
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require('stripe')('sk_test_51PKgzy2L2oRbaxWrbbFzQLutGrG2Bqz4YTAFocaX7ETfcBb7yhHMDig25i12EmzKMojfSIlf1KoAhjGpum6OeXZQ00o3sHoNR7');
 const port = process.env.PORT || 8844
 require('dotenv').config()
 const app = express()
@@ -32,6 +33,7 @@ async function run() {
     let petsCollection = client.db('petoriaDB').collection('pets')
     let campaignCollection = client.db('petoriaDB').collection('campaign')
     let adoptionsrequestedCollection = client.db('petoriaDB').collection('adoptionsrequested')
+    let donatorsCollection = client.db('petoriaDB').collection('donators')
 
     // app.post('/users',async(req,res)=>{
     //     let user = req.body 
@@ -289,22 +291,40 @@ async function run() {
     const { price } = req.body;
     const amount = parseInt(price * 100);
     console.log(amount, 'amount inside the intent')
-
+    let body=req.body
+    //  console.log(body);
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount,
       currency: 'usd',
       payment_method_types: ['card']
     });
+    let id=req.body?.askedforId
+    // console.log(id);
+    let query={_id:new ObjectId(id)}
+    // let updatedDoc={
+    //   $set:{
 
+    //   }
+    // }
+    // let chadonatedamount=await campaignCollection.findOneAndUpdate({ _id: new ObjectId(id) }, {$set:{}}, { new: true })
     res.send({
       clientSecret: paymentIntent.client_secret
     })
   });
 
+  // donators collection
+
+  app.post('/donator',async(req,res)=>{
+    let donator=req.body 
+    let result=await donatorsCollection.insertOne(donator)
+    res.send(result)
+  })
+
+  
   
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
