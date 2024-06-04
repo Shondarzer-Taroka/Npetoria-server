@@ -82,7 +82,12 @@ async function run() {
       res.send(result)
     })
 
-    
+    app.delete('/mypetdelete/:id',async(req,res)=>{
+      let id=req.params.id
+      let query={_id:new ObjectId(id)}
+      let result=await petsCollection.deleteOne(query)
+      res.send(result)
+    })
 
     app.get('/onepet/:id', async (req, res) => {
       let id = req.params.id
@@ -117,6 +122,24 @@ async function run() {
       let result = await petsCollection.updateOne(query, updatedDoc)
       res.send(result)
     })
+
+        // petstatusbyuser
+
+    app.patch('/petstatusbyuser/:id', async (req, res) => {
+      let pet = req.body
+      let id = req.params.id
+      let query = { _id: new ObjectId(id) }
+      let updatedDoc = {
+        $set: {
+          adopted: pet.adopted
+        }
+      }
+
+      let result = await petsCollection.updateOne(query, updatedDoc)
+      res.send(result)
+    })
+
+
 
 
     // pet listing
