@@ -1,8 +1,11 @@
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express')
 const cors = require('cors')
-// const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const stripe = require('stripe')('sk_test_51PKgzy2L2oRbaxWrbbFzQLutGrG2Bqz4YTAFocaX7ETfcBb7yhHMDig25i12EmzKMojfSIlf1KoAhjGpum6OeXZQ00o3sHoNR7');
+// const Stripe=require('stripe')
+// const stripe=Stripe(process.env.STRIPE_SECRET_KEY)
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// const stripe = require('stripe')(`Authorization: Bearer'${process.env.STRIPE_SECRET_KEY}`);
+// const stripe = require('stripe')('sk_test_51PKgzy2L2oRbaxWrbbFzQLutGrG2Bqz4YTAFocaX7ETfcBb7yhHMDig25i12EmzKMojfSIlf1KoAhjGpum6OeXZQ00o3sHoNR7');
 const port = process.env.PORT || 8844
 require('dotenv').config()
 const app = express()
@@ -71,6 +74,16 @@ async function run() {
       res.send(result)
     })
 
+    app.get('/myaddedpets/:email', async (req, res) => {
+      let email=req.params.email
+      let query={email:email}
+      let result = await petsCollection.find(query).toArray()
+      console.log(result);
+      res.send(result)
+    })
+
+    
+
     app.get('/onepet/:id', async (req, res) => {
       let id = req.params.id
       let query = { _id: new ObjectId(id) }
@@ -119,18 +132,18 @@ async function run() {
     //       $sort: { date: -1 } 
     //     }
     //   ]).toArray();
-     
+
     //   res.send(result)
     // })
-    app.get('/petlisting',async(req,res)=>{
+    app.get('/petlisting', async (req, res) => {
       // let email=req.params.email 
 
-      let result= await petsCollection.aggregate([
+      let result = await petsCollection.aggregate([
         {
-          $match:{adopted:false}
+          $match: { adopted: false }
         },
         {
-          $sort: { date: -1 } 
+          $sort: { date: -1 }
         },
         // {
         //   $skip: page * limit
@@ -142,10 +155,10 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/viewdetails/:id',async(req,res)=>{
-      let id=req.params.id
-      let query={_id:new ObjectId(id)}
-      let result =await petsCollection.findOne(query)
+    app.get('/viewdetails/:id', async (req, res) => {
+      let id = req.params.id
+      let query = { _id: new ObjectId(id) }
+      let result = await petsCollection.findOne(query)
       res.send(result)
     })
 
@@ -159,16 +172,16 @@ async function run() {
     })
 
 
-    app.get('/donationcampaign',async(req,res)=>{
-      let result=await campaignCollection.find().toArray()
+    app.get('/donationcampaign', async (req, res) => {
+      let result = await campaignCollection.find().toArray()
       res.send(result)
     })
 
 
-    app.get('/donationdetails/:id',async(req,res)=>{
-      let id=req.params.id 
-      let query={_id:new ObjectId(id)}
-      let result=await campaignCollection.findOne(query)
+    app.get('/donationdetails/:id', async (req, res) => {
+      let id = req.params.id
+      let query = { _id: new ObjectId(id) }
+      let result = await campaignCollection.findOne(query)
       res.send(result)
     })
 
@@ -274,71 +287,96 @@ async function run() {
         }
       }
 
-      let result=await petsCollection.updateOne(filter,updatedDoc)
+      let result = await petsCollection.updateOne(filter, updatedDoc)
       res.send(result)
     })
 
     //  adoptionsrequested
 
-   app.post('/adoptionrequest',async(req,res)=>{
-    let adoptionrequest=req.body
-    let result =await adoptionsrequestedCollection.insertOne(adoptionrequest)
-    res.send(result)
-   })
-
-  //  payment related
-  app.post('/create-payment-intent', async (req, res) => {
-    const { price } = req.body;
-    const amount = parseInt(price * 100);
-    console.log(amount, 'amount inside the intent')
-    let body=req.body
-    //  console.log(body);
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount,
-      currency: 'usd',
-      payment_method_types: ['card']
-    });
-    let id=req.body?.askedforId
-    // console.log(id);
-    let query={_id:new ObjectId(id)}
-    // let updatedDoc={
-    //   $set:{
-
-    //   }
-    // }
-    // let chadonatedamount=await campaignCollection.findOneAndUpdate({ _id: new ObjectId(id) }, {$set:{}}, { new: true })
-    res.send({
-      clientSecret: paymentIntent.client_secret
+    app.post('/adoptionrequest', async (req, res) => {
+      let adoptionrequest = req.body
+      let result = await adoptionsrequestedCollection.insertOne(adoptionrequest)
+      res.send(result)
     })
-  });
 
-  // donators collection
+    //  payment related
+    app.post('/create-payment-intent', async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      console.log(amount, 'amount inside the intent')
+      let body = req.body
+      //  console.log(body);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+      let id = req.body?.askedforId
+      // console.log(id);
+      let query = { _id: new ObjectId(id) }
+      // let updatedDoc={
+      //   $set:{
 
-  app.post('/donator',async(req,res)=>{
-    let donator=req.body 
-    let result=await donatorsCollection.insertOne(donator)
-    
-    res.send(result)
-  })
+      //   }
+      // }
+      // let chadonatedamount=await campaignCollection.findOneAndUpdate({ _id: new ObjectId(id) }, {$set:{}}, { new: true })
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    });
+
+    // donators collection
+
+    app.post('/donator', async (req, res) => {
+      let donator = req.body
+      let result = await donatorsCollection.insertOne(donator)
+      let petId = req.body.petdata._id
+      let pet = req.body
+      let petData = req.body.petdata
+      let query = { _id: new ObjectId(petId) }
+      let options = { upsert: true }
+      if (petData.donatedAmount) {
+        let updatedDoc = {
+          $set: {
+            donatedAmount: petData.donatedAmount + pet.amount
+          }
+        }
+        let successupdate = await campaignCollection.updateOne(query, updatedDoc)
+      }
+      else {
+
+        let updatedDoc = {
+          $set: {
+            donatedAmount: pet.amount
+          }
+        }
+        console.log(pet);
+        let successupdate = await campaignCollection.updateOne(query, updatedDoc, options)
+      }
 
 
-  app.get('/donators/:donationid',async(req,res)=>{
-    let id=req.params.donationid
-    // console.log(id);
-    let query={askedforId:id}
-    let result =await donatorsCollection.find(query).toArray()
-    res.send(result)
-    // console.log(result);
-  })
+      res.send(result)
+    })
 
 
-  app.get('/mydonation/:email',async(req,res)=>{
-    let email=req.params.email
-    let query={email:email}
-    let result=await donatorsCollection.find(query).toArray()
-    res.send(result)
-  })
-  
+    app.get('/donators/:donationid', async (req, res) => {
+      let id = req.params.donationid
+      // console.log(id);
+      let query = { askedforId: id }
+
+      let result = await donatorsCollection.find(query).toArray()
+      res.send(result)
+      // console.log(result);
+    })
+
+
+    app.get('/mydonation/:email', async (req, res) => {
+      let email = req.params.email
+      let query = { email: email }
+      let result = await donatorsCollection.find(query).toArray()
+      res.send(result)
+    })
+
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
