@@ -1,9 +1,11 @@
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express')
+const app = express()
 const cors = require('cors')
+const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 8844
 require('dotenv').config()
-const app = express()
+
 app.use(cors())
 app.use(express.json())
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -27,6 +29,16 @@ async function run() {
     let campaignCollection = client.db('petoriaDB').collection('campaign')
     let adoptionsrequestedCollection = client.db('petoriaDB').collection('adoptionsrequested')
     let donatorsCollection = client.db('petoriaDB').collection('donators')
+
+    // jwt related
+
+    app.post('/jwt', async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+      res.send({ token });
+    })
+
+    
 
     // app.post('/users',async(req,res)=>{
     //     let user = req.body 
