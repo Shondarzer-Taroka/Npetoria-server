@@ -486,6 +486,21 @@ async function run() {
       })
     });
 
+
+    app.post('/refund-payment', async (req, res) => {
+      const { paymentIntentId } = req.body;
+      
+      try {
+          const refund = await stripe.refunds.create({
+              payment_intent: paymentIntentId,
+          });
+          res.status(200).send({ refund });
+      } catch (error) {
+          res.status(500).send({ error: error.message });
+      }
+  });
+  
+
     // donators collection
 
     app.post('/donator', async (req, res) => {
