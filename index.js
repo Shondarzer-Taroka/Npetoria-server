@@ -1,22 +1,12 @@
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express')
 const cors = require('cors')
-// const Stripe=require('stripe')
-// const stripe=Stripe(process.env.STRIPE_SECRET_KEY)
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-// const stripe = require('stripe')(`Authorization: Bearer'${process.env.STRIPE_SECRET_KEY}`);
-// const stripe = require('stripe')('sk_test_51PKgzy2L2oRbaxWrbbFzQLutGrG2Bqz4YTAFocaX7ETfcBb7yhHMDig25i12EmzKMojfSIlf1KoAhjGpum6OeXZQ00o3sHoNR7');
 const port = process.env.PORT || 8844
 require('dotenv').config()
 const app = express()
 app.use(cors())
 app.use(express.json())
-
-
-
-
-
-
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const uri = `mongodb+srv://${process.env.USER_DB}:${process.env.USER_PASS}@cluster0.oypj9vn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -75,17 +65,17 @@ async function run() {
     })
 
     app.get('/myaddedpets/:email', async (req, res) => {
-      let email=req.params.email
-      let query={email:email}
+      let email = req.params.email
+      let query = { email: email }
       let result = await petsCollection.find(query).toArray()
-      console.log(result);
+      // console.log(result);
       res.send(result)
     })
 
-    app.delete('/mypetdelete/:id',async(req,res)=>{
-      let id=req.params.id
-      let query={_id:new ObjectId(id)}
-      let result=await petsCollection.deleteOne(query)
+    app.delete('/mypetdelete/:id', async (req, res) => {
+      let id = req.params.id
+      let query = { _id: new ObjectId(id) }
+      let result = await petsCollection.deleteOne(query)
       res.send(result)
     })
 
@@ -123,7 +113,7 @@ async function run() {
       res.send(result)
     })
 
-        // petstatusbyuser
+    // petstatusbyuser
 
     app.patch('/petstatusbyuser/:id', async (req, res) => {
       let pet = req.body
@@ -158,25 +148,104 @@ async function run() {
 
     //   res.send(result)
     // })
-    app.get('/petlisting', async (req, res) => {
-      // let email=req.params.email 
 
-      let result = await petsCollection.aggregate([
-        {
-          $match: { adopted: false }
-        },
-        {
-          $sort: { date: -1 }
-        },
-        // {
-        //   $skip: page * limit
-        // },
-        // {
-        //   $limit: limit
-        // }
+    app.get('/petlisting', async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const initialLimit = parseInt(req.query.initialLimit) || 9;
+      const subsequentLimit = parseInt(req.query.subsequentLimit) || 6;
+      const limit = page === 1 ? initialLimit : subsequentLimit;
+      const skip = page === 1 ? 0 : initialLimit + (page - 2) * subsequentLimit;
+
+      const nameFilter = req.query.name || "";
+      const categoryFilter = req.query.category || "";
+    
+      const matchStage = { adopted: false };
+      if (nameFilter) matchStage.name = { $regex: nameFilter, $options: "i" };
+      if (categoryFilter) matchStage.category = categoryFilter;
+
+      const total = await petsCollection.countDocuments(matchStage);
+      let results = await petsCollection.aggregate([
+        { $match: matchStage },
+        { $sort: { date: -1 } },
+        { $skip: skip },
+        { $limit: limit }
+
       ]).toArray();
-      res.send(result)
+      const hasMore = skip + limit < total;
+      // res.send({results, nextPage: hasMore ? page + 1 : null,})
+      res.json({
+        results,
+        nextPage: hasMore ? page + 1 : null,
+      });
+
     })
+    // app.get('/petlisting', async (req, res) => {
+    //   const page = parseInt(req.query.page) || 1;
+    //   const initialLimit = parseInt(req.query.initialLimit) || 9;
+    //   const subsequentLimit = parseInt(req.query.subsequentLimit) || 6;
+    //   const limit = page === 1 ? initialLimit : subsequentLimit;
+    //   const skip = page === 1 ? 0 : initialLimit + (page - 2) * subsequentLimit;
+
+    //   const nameFilter = req.query.name || "";
+    //   const categoryFilter = req.query.category || "";
+
+    //   const matchStage = { adopted: false };
+    //   if (nameFilter) matchStage.name = { $regex: nameFilter, $options: "i" };
+    //   if (categoryFilter) matchStage.category = categoryFilter;
+
+
+    //   const total = await petsCollection.countDocuments(matchStage);
+    //   let results = await petsCollection.aggregate([
+    //     { $match: matchStage },
+    //     { $sort: { date: -1 } },
+    //     { $skip: skip },
+    //     { $limit: limit }
+
+    //   ]).toArray();
+    //   const hasMore = skip + limit < total;
+    //   // res.send({results, nextPage: hasMore ? page + 1 : null,})
+    //   res.json({
+    //     results,
+    //     nextPage: hasMore ? page + 1 : null,
+    //   });
+
+    // })
+    // app.get('/petlisting', async (req, res) => {
+    //   const page = parseInt(req.query.page) || 1;
+    //   const limit = parseInt(req.query.limit) || 10;
+    //   const skip = (page - 1) * limit;
+    //   const total = await petsCollection.countDocuments({ adopted: false });
+    //   let results = await petsCollection.aggregate([
+    //     {
+    //       $match: { adopted: false }
+    //     },
+    //     {
+    //       $sort: { date: -1 }
+    //     },
+    //     { $skip: skip },
+    //     { $limit: limit }
+
+    //   ]).toArray();
+    //   const hasMore = page * limit < total;
+    //   // res.send({results, nextPage: hasMore ? page + 1 : null,})
+    //   res.json({
+    //     results,
+    //     nextPage: hasMore ? page + 1 : null,
+    // });
+    // })
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     app.get('/viewdetails/:id', async (req, res) => {
       let id = req.params.id
@@ -322,11 +391,18 @@ async function run() {
       res.send(result)
     })
 
+    app.get('/adoptorsrequest/:email', async (req, res) => {
+      let email = req.params.email
+      let query = { adoptorEmail: email }
+      let result = await adoptionsrequestedCollection.find(query).toArray()
+      res.send(result)
+    })
+
     //  payment related
     app.post('/create-payment-intent', async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
-      console.log(amount, 'amount inside the intent')
+      // console.log(amount, 'amount inside the intent')
       let body = req.body
       //  console.log(body);
       const paymentIntent = await stripe.paymentIntents.create({
@@ -373,7 +449,7 @@ async function run() {
             donatedAmount: pet.amount
           }
         }
-        console.log(pet);
+        // console.log(pet);
         let successupdate = await campaignCollection.updateOne(query, updatedDoc, options)
       }
 
