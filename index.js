@@ -6,7 +6,16 @@ const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 8844
 require('dotenv').config()
 
-app.use(cors())
+app.use(cors(
+  {
+    origin: ["http://localhost:5173",
+      "http://localhost:5174",
+      "https://assignment-twelve-final.web.app",
+      "https://assignment-twelve-final.firebaseapp.com"
+    ],
+    credentials:true
+  }
+))
 app.use(express.json())
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
@@ -38,8 +47,8 @@ async function run() {
       res.send({ token });
     })
 
-     // middlewares 
-     const verifyToken =(req, res, next) => {
+    // middlewares 
+    const verifyToken = (req, res, next) => {
       console.log('inside verify token', req.headers.authorization);
       if (!req.headers.authorization) {
         return res.status(401).send({ message: 'unauthorized access' });
@@ -73,7 +82,7 @@ async function run() {
     //     res.send(result)
     // })
 
-    app.get('/users',verifyToken,verifyAdmin, async (req, res) => {
+    app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
       let result = await usersCollection.find().toArray();
       res.send(result)
 
@@ -99,11 +108,11 @@ async function run() {
 
 
 
-    app.get('/users/admin/:email',verifyToken,async(req,res)=>{
+    app.get('/users/admin/:email', verifyToken, async (req, res) => {
       const email = req.params.email;
       console.log(email);
 
-      setTimeout(()=>{
+      setTimeout(() => {
         if (email !== req.decoded.email) {
           return res.status(403).send({ message: 'forbidden access' })
         }
@@ -121,12 +130,12 @@ async function run() {
 
     // pet related
 
-    app.get('/allpets', async (req, res) => {
+    app.get('/allpets',verifyToken,verifyAdmin, async (req, res) => {
       let result = await petsCollection.find().toArray()
       res.send(result)
     })
 
-    app.get('/myaddedpets/:email', async (req, res) => {
+    app.get('/myaddedpets/:email',verifyToken,async (req, res) => {
       let email = req.params.email
       let query = { email: email }
       let result = await petsCollection.find(query).toArray()
@@ -134,34 +143,34 @@ async function run() {
       res.send(result)
     })
 
-    app.delete('/mypetdelete/:id', async (req, res) => {
+    app.delete('/mypetdelete/:id', verifyToken,async (req, res) => {
       let id = req.params.id
       let query = { _id: new ObjectId(id) }
       let result = await petsCollection.deleteOne(query)
       res.send(result)
     })
 
-    app.get('/onepet/:id', async (req, res) => {
+    app.get('/onepet/:id',verifyToken, async (req, res) => {
       let id = req.params.id
       let query = { _id: new ObjectId(id) }
       let result = await petsCollection.findOne(query)
       res.send(result)
     })
 
-    app.post('/pets',verifyToken, async (req, res) => {
+    app.post('/pets', verifyToken, async (req, res) => {
       let pet = req.body
       let result = await petsCollection.insertOne(pet)
       res.send(result)
     })
 
-    app.delete('/petdelete/:id', async (req, res) => {
+    app.delete('/petdelete/:id',verifyToken, async (req, res) => {
       let id = req.params.id
       let query = { _id: new ObjectId(id) }
       let result = await petsCollection.deleteOne(query)
       res.send(result)
     })
 
-    app.patch('/petstatusbyadmin/:id', async (req, res) => {
+    app.patch('/petstatusbyadmin/:id',verifyToken,async (req, res) => {
       let pet = req.body
       let id = req.params.id
       let query = { _id: new ObjectId(id) }
@@ -177,7 +186,7 @@ async function run() {
 
     // petstatusbyuser
 
-    app.patch('/petstatusbyuser/:id', async (req, res) => {
+    app.patch('/petstatusbyuser/:id',verifyToken,async (req, res) => {
       let pet = req.body
       let id = req.params.id
       let query = { _id: new ObjectId(id) }
@@ -196,31 +205,14 @@ async function run() {
 
     // pet listing
 
-    // app.get('/petlisting',async(req,res)=>{
-    //   // let email=req.params.email 
-
-    //   let result= await petsCollection.aggregate([
-    //     {
-    //       $match:{adopted:false}
-    //     },
-    //     {
-    //       $sort: { date: -1 } 
-    //     }
-    //   ]).toArray();
-
-    //   res.send(result)
-    // })
 
     app.get('/petlisting', async (req, res) => {
       const page = parseInt(req.query.page) || 1;
-      const initialLimit = parseInt(req.query.initialLimit) || 9;
-      const subsequentLimit = parseInt(req.query.subsequentLimit) || 6;
-      const limit = page === 1 ? initialLimit : subsequentLimit;
-      const skip = page === 1 ? 0 : initialLimit + (page - 2) * subsequentLimit;
-
+      const limit = 10; // Consistent limit for all pages
+      const skip = (page - 1) * limit;
       const nameFilter = req.query.name || "";
       const categoryFilter = req.query.category || "";
-    
+
       const matchStage = { adopted: false };
       if (nameFilter) matchStage.name = { $regex: nameFilter, $options: "i" };
       if (categoryFilter) matchStage.category = categoryFilter;
@@ -241,75 +233,11 @@ async function run() {
       });
 
     })
-    // app.get('/petlisting', async (req, res) => {
-    //   const page = parseInt(req.query.page) || 1;
-    //   const initialLimit = parseInt(req.query.initialLimit) || 9;
-    //   const subsequentLimit = parseInt(req.query.subsequentLimit) || 6;
-    //   const limit = page === 1 ? initialLimit : subsequentLimit;
-    //   const skip = page === 1 ? 0 : initialLimit + (page - 2) * subsequentLimit;
-
-    //   const nameFilter = req.query.name || "";
-    //   const categoryFilter = req.query.category || "";
-
-    //   const matchStage = { adopted: false };
-    //   if (nameFilter) matchStage.name = { $regex: nameFilter, $options: "i" };
-    //   if (categoryFilter) matchStage.category = categoryFilter;
-
-
-    //   const total = await petsCollection.countDocuments(matchStage);
-    //   let results = await petsCollection.aggregate([
-    //     { $match: matchStage },
-    //     { $sort: { date: -1 } },
-    //     { $skip: skip },
-    //     { $limit: limit }
-
-    //   ]).toArray();
-    //   const hasMore = skip + limit < total;
-    //   // res.send({results, nextPage: hasMore ? page + 1 : null,})
-    //   res.json({
-    //     results,
-    //     nextPage: hasMore ? page + 1 : null,
-    //   });
-
-    // })
-    // app.get('/petlisting', async (req, res) => {
-    //   const page = parseInt(req.query.page) || 1;
-    //   const limit = parseInt(req.query.limit) || 10;
-    //   const skip = (page - 1) * limit;
-    //   const total = await petsCollection.countDocuments({ adopted: false });
-    //   let results = await petsCollection.aggregate([
-    //     {
-    //       $match: { adopted: false }
-    //     },
-    //     {
-    //       $sort: { date: -1 }
-    //     },
-    //     { $skip: skip },
-    //     { $limit: limit }
-
-    //   ]).toArray();
-    //   const hasMore = page * limit < total;
-    //   // res.send({results, nextPage: hasMore ? page + 1 : null,})
-    //   res.json({
-    //     results,
-    //     nextPage: hasMore ? page + 1 : null,
-    // });
-    // })
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-    app.get('/viewdetails/:id', async (req, res) => {
+    app.get('/viewdetails/:id',verifyToken,async (req, res) => {
       let id = req.params.id
       let query = { _id: new ObjectId(id) }
       let result = await petsCollection.findOne(query)
@@ -319,17 +247,29 @@ async function run() {
 
 
     // campaign related
-    app.post('/createcampaign', async (req, res) => {
+    app.post('/createcampaign',verifyToken,async (req, res) => {
       let pet = req.body
       let result = await campaignCollection.insertOne(pet)
       res.send(result)
     })
 
 
-    app.get('/donationcampaign', async (req, res) => {
-      let result = await campaignCollection.find().toArray()
+
+    // update-2
+
+    app.get('/donationcampaign',async (req, res) => {
+      const todayISOString = new Date();
+      todayISOString.setUTCHours(0, 0, 0, 0)
+      const newIsoDateString = todayISOString.toISOString().split('.')[0] + 'Z';
+      console.log(newIsoDateString);
+      const page = parseInt(req.query.page) || 0;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = page * limit;
+      let result = await campaignCollection.find({ lastDate: { $gte: newIsoDateString }, $or: [{ isPaused: { $exists: false } }, { isPaused: 'unpaused' }] }).skip(skip).limit(limit).toArray()
       res.send(result)
     })
+
+
 
 
     app.get('/donationdetails/:id', async (req, res) => {
@@ -340,8 +280,10 @@ async function run() {
     })
 
 
-    app.get('/campaigns', async (req, res) => {
-      let result = await campaignCollection.find().toArray();
+    app.get('/campaigns/:email',verifyToken,async (req, res) => {
+      console.log(req.params.email);
+      let query={email:req.params.email}
+      let result = await campaignCollection.find(query).toArray();
       res.send(result)
     })
 
@@ -350,14 +292,14 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/onedonation/:id', async (req, res) => {
+    app.get('/onedonation/:id',verifyToken, async (req, res) => {
       let id = req.params.id
       let query = { _id: new ObjectId(id) }
       let result = await campaignCollection.findOne(query)
       res.send(result)
     })
 
-    app.put('/campaignspause/:id', async (req, res) => {
+    app.put('/campaignspause/:id',verifyToken, async (req, res) => {
       let id = req.params.id
       let campaign = req.body
       let query = { _id: new ObjectId(id) }
@@ -374,7 +316,7 @@ async function run() {
 
 
 
-    app.put('/editdonation/:id', async (req, res) => {
+    app.put('/editdonation/:id',verifyToken, async (req, res) => {
       let id = req.params.id
       let campaign = req.body
       let query = { _id: new ObjectId(id) }
@@ -397,7 +339,7 @@ async function run() {
 
     // admin related
 
-    app.patch('/makeadmin/:id', async (req, res) => {
+    app.patch('/makeadmin/:id',verifyToken,verifyAdmin,async (req, res) => {
       let id = req.params.id
       let user = req.body
       let query = { _id: new ObjectId(id) }
@@ -414,7 +356,7 @@ async function run() {
 
 
 
-    app.delete('/campaigndeletebyadmin/:id', async (req, res) => {
+    app.delete('/campaigndeletebyadmin/:id',verifyToken, async (req, res) => {
       let id = req.params.id
       let query = { _id: new ObjectId(id) }
       let result = await campaignCollection.deleteOne(query)
@@ -422,7 +364,7 @@ async function run() {
     })
 
 
-    app.put('/updatepet/:id', async (req, res) => {
+    app.put('/updatepet/:id',verifyToken,async (req, res) => {
       let id = req.params.id
       let pet = req.body
       let filter = { _id: new ObjectId(id) }
@@ -447,13 +389,13 @@ async function run() {
 
     //  adoptionsrequested
 
-    app.post('/adoptionrequest', async (req, res) => {
+    app.post('/adoptionrequest',verifyToken,async (req, res) => {
       let adoptionrequest = req.body
       let result = await adoptionsrequestedCollection.insertOne(adoptionrequest)
       res.send(result)
     })
 
-    app.get('/adoptorsrequest/:email', async (req, res) => {
+    app.get('/adoptorsrequest/:email',verifyToken, async (req, res) => {
       let email = req.params.email
       let query = { adoptorEmail: email }
       let result = await adoptionsrequestedCollection.find(query).toArray()
@@ -489,21 +431,21 @@ async function run() {
 
     app.post('/refund-payment', async (req, res) => {
       const { paymentIntentId } = req.body;
-      
+
       try {
-          const refund = await stripe.refunds.create({
-              payment_intent: paymentIntentId,
-          });
-          res.status(200).send({ refund });
+        const refund = await stripe.refunds.create({
+          payment_intent: paymentIntentId,
+        });
+        res.status(200).send({ refund });
       } catch (error) {
-          res.status(500).send({ error: error.message });
+        res.status(500).send({ error: error.message });
       }
-  });
-  
+    });
+
 
     // donators collection
 
-    app.post('/donator', async (req, res) => {
+    app.post('/donator', verifyToken,async (req, res) => {
       let donator = req.body
       let result = await donatorsCollection.insertOne(donator)
       let petId = req.body.petdata._id
@@ -535,7 +477,7 @@ async function run() {
     })
 
 
-    app.get('/donators/:donationid', async (req, res) => {
+    app.get('/donators/:donationid', verifyToken,async (req, res) => {
       let id = req.params.donationid
       // console.log(id);
       let query = { askedforId: id }
@@ -546,7 +488,7 @@ async function run() {
     })
 
 
-    app.get('/mydonation/:email',verifyToken, async (req, res) => {
+    app.get('/mydonation/:email', verifyToken, async (req, res) => {
       let email = req.params.email
       let query = { email: email }
       let result = await donatorsCollection.find(query).toArray()
