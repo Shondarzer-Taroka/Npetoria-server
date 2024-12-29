@@ -11,7 +11,8 @@ app.use(cors(
     origin: ["http://localhost:5173",
       "http://localhost:5174",
       "https://assignment-twelve-final.web.app",
-      "https://assignment-twelve-final.firebaseapp.com"
+      "https://assignment-twelve-final.firebaseapp.com",
+      "https://npetoria.vercel.app"
     ],
     credentials:true
   }
